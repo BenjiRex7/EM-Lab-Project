@@ -1,8 +1,8 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-#define buttonS 22
-#define buttonL 23
+#define buttonS 5
+#define buttonL 18
 #define ledPin1 5
 uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
