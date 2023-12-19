@@ -11,8 +11,8 @@
 
 #define Password_Length 4
 char input[Password_Length];
-char pass1[Password_Length] = "131";
-char pass2[Password_Length] = "147";
+char pass1[Password_Length] = "147";
+char pass2[Password_Length] = "131";
 
 const byte ROW_NUM = 4;
 const byte COLUMN_NUM = 3;
@@ -92,6 +92,7 @@ void setup() {
   }
   UP.Pin = 5;
   DOWN.Pin = 18;
+  SELECT.Pin = 19;
   pinMode(UP.Pin, INPUT_PULLUP);
   pinMode(DOWN.Pin, INPUT_PULLUP);
   pinMode(SELECT.Pin, INPUT_PULLUP);
@@ -137,8 +138,6 @@ void setup() {
 }
 
 void loop() {
-  //ADD KEYPAD PASSWORD REGOCNIZATION AND THEN SET A VARIABLE FOR EACH BULD ACCESS
-SELECT.State = digitalRead(SELECT.Pin);
   char key = customKeypad.getKey();
   if (key) {
     if (key == '0') {
@@ -164,7 +163,7 @@ SELECT.State = digitalRead(SELECT.Pin);
     if (scroll != 0) {
       UP.State = digitalRead(UP.Pin);
       DOWN.State = digitalRead(DOWN.Pin);
-
+      SELECT.State = digitalRead(SELECT.Pin);
       //UP
       {
         if (UP.State == LOW && UP.preState == 0) {
@@ -192,11 +191,59 @@ SELECT.State = digitalRead(SELECT.Pin);
           DOWN.preState = 0;
         }
       }
-    }
 
+      if (SELECT.State == LOW && SELECT.preState == 0) {
+        SELECT.preState = 1;
+        if (scroll == 1) {
+          if (Send.Stateask1 == 1) {
+            Send.onoff1 = 1;
+          }
+          if (Send.Stateask2 == 1) {
+            Send.onoff2 = 1;
+          }
+          esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&Send, sizeof(Send));
+          if (result == ESP_OK) {
+            Serial.println("Sent with success");
+          } else {
+            Serial.println("Error sending the data");
+          }
+          scroll = 0;
+          Serial.print("scroll: ");
+          Serial.println(scroll);
+          display.clearDisplay();
+          display.display();
+        } else if (scroll == 2) {
+          if (Send.Stateask1 == 1) {
+            Send.onoff1 = 0;
+          }
+          if (Send.Stateask2 == 1) {
+            Send.onoff2 = 0;
+          }
+          esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&Send, sizeof(Send));
+          if (result == ESP_OK) {
+            Serial.println("Sent with success");
+          } else {
+            Serial.println("Error sending the data");
+          }
+          scroll = 0;
+          display.clearDisplay();
+          display.display();
+        } else if (scroll == 3) {
+          scroll = 0;
+          count = 69;
+          Serial.print("scroll: ");
+          Serial.println(scroll);
+          display.clearDisplay();
+          display.display();
+        }
+      } else if (SELECT.State == HIGH) {
+        SELECT.preState = 0;
+      }
+    }
     if (strlen(input) == Password_Length - 1) {
       if (strcmp(pass1, input) == 0) {
         Serial.println("Light 1 Control");
+        Light1Cont();
         Send.Stateask1 = 1;
         Send.onoff1 = 8;
         esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&Send, sizeof(Send));
@@ -209,58 +256,39 @@ SELECT.State = digitalRead(SELECT.Pin);
         count = 69;
         Serial.print("scroll: ");
         Serial.println(scroll);
-        if (SELECT.State == LOW && SELECT.preState == 0) {
-          SELECT.preState = 1;
-          if(scroll==0){
-            
-          }
-          if (scroll == 1) {
-            Send.onoff1 = 1;
-            esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&Send, sizeof(Send));
-            if (result == ESP_OK) {
-              Serial.println("Sent with success");
-            } else {
-              Serial.println("Error sending the data");
-            }
-            scroll = 0;
-            Serial.print("scroll: ");
-            Serial.println(scroll);
-          } else if (scroll == 2) {
-            Send.onoff1 = 0;
-            esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&Send, sizeof(Send));
-            if (result == ESP_OK) {
-              Serial.println("Sent with success");
-            } else {
-              Serial.println("Error sending the data");
-            }
-            scroll = 0;
-          } else if (scroll == 3) {
-            scroll = 0;
-            count = 69;
-            Serial.print("scroll: ");
-            Serial.println(scroll);
-          }
-        } else if (SELECT.State == HIGH) {
-          SELECT.preState = 0;
+      } else if (strcmp(pass2, input) == 0) {
+        Serial.println("Light 2 Control");
+        Light2Cont();
+        Send.Stateask2 = 1;
+        Send.onoff2 = 8;
+        esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&Send, sizeof(Send));
+        if (result == ESP_OK) {
+          Serial.println("Sent with success");
+        } else {
+          Serial.println("Error sending the data");
         }
+        scroll = 1;
+        count = 69;
+        Serial.print("scroll: ");
+        Serial.println(scroll);
+      } else {
+        wrongpass();
       }
       clearData();
     }
-    //LEFT
-    {
-
-    }
 
     //TV SCROLL
-    {
-      if (scroll == 1) {
-        TV_LEDON();
-      } else if (scroll == 2) {
-        TV_LEDOFF();
-      } else if (scroll == 3) {
-        TV_BACK();
-      } else if (scroll == 0) {
-        TV_HOME();
+    if ((Send.Stateask1 != 1) && (Send.Stateask2 != 1)) {
+      {
+        if (scroll == 1) {
+          TV_LEDON();
+        } else if (scroll == 2) {
+          TV_LEDOFF();
+        } else if (scroll == 3) {
+          TV_BACK();
+        } else if (scroll == 0) {
+          TV_HOME();
+        }
       }
     }
 
@@ -441,6 +469,21 @@ void GettingState() {
   display.display();
   delay(500);
 }
+void wrongpass() {
+  display.setFont();
+  display.setTextSize(1);
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  display.setTextSize(2);
+  display.setCursor(14, 1);
+  display.println("Incorrect");
+  display.setCursor(20, 22);
+  display.println("Password");
+  display.setCursor(15, 44);
+  display.println("TRY AGAIN");
+  display.display();
+  delay(3000);
+}
 void clearData() {
   memset(input, 0, sizeof(input));
   display.clearDisplay();
@@ -463,4 +506,30 @@ void threestar() {
   display.setCursor(centerX + 30, 40);
   display.println("* ");  // print char at said cursor and show *
   display.display();
+}
+void Light1Cont() {
+  display.setFont(&FreeMonoBoldOblique9pt7b);
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(5, 13);
+  display.println("WELCOME TO");
+  display.setCursor(26, 35);
+  display.println("LIGHT 1");
+  display.setCursor(0, 57);
+  display.println("CONTROL BOX");
+  display.display();
+  delay(3000);
+}
+void Light2Cont() {
+  display.setFont(&FreeMonoBoldOblique9pt7b);
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(5, 13);
+  display.println("WELCOME TO");
+  display.setCursor(26, 35);
+  display.println("LIGHT 2");
+  display.setCursor(0, 57);
+  display.println("CONTROL BOX");
+  display.display();
+  delay(3000);
 }
