@@ -1,8 +1,8 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-#define ledPin1 19
-#define ledPin2 47
+#define ledPin1 1
+#define ledPin2 2
 uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 struct variable {
@@ -83,7 +83,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
       Send.onoff1 = 1;
       Button1.count++;
     } else if (incomingReadings.onoff1 == 0) {
-      digitalWrite(ledPin1, LOW);
+      digitalWrite(ledPin1, HIGH);
     }
   }
   //control light 2 from X
@@ -92,7 +92,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
       Send.onoff2 = 1;
       Button2.count++;
     } else if (incomingReadings.onoff2 == 0) {
-      digitalWrite(ledPin2, LOW);
+      digitalWrite(ledPin2, HIGH);
     }
   }
 }
@@ -145,7 +145,7 @@ void getReadings() {
   {
     if (Button1.State == LOW && Button1.preState == 0) {
       if (incomingReadings.onoff1 == 0) {
-        digitalWrite(ledPin1, LOW);
+        digitalWrite(ledPin1, HIGH);
         Send.onoff1 = 0;
       } else {
         Button1.count++;
@@ -173,9 +173,9 @@ void updateLIGHTS() {
   {
     if (incomingReadings.onoff1 != 0) {
       if (Send.onoff1 == 1) {
-        digitalWrite(ledPin1, HIGH);
-      } else {
         digitalWrite(ledPin1, LOW);
+      } else {
+        digitalWrite(ledPin1, HIGH);
       }
     } else if (incomingReadings.onoff1 == 0) {
       Send.onoff1 = 0;
@@ -186,9 +186,9 @@ void updateLIGHTS() {
   {
     if (incomingReadings.onoff2 != 0) {
       if (Send.onoff2 == 1) {
-        digitalWrite(ledPin2, HIGH);
-      } else {
         digitalWrite(ledPin2, LOW);
+      } else {
+        digitalWrite(ledPin2, HIGH);
       }
     } else if (incomingReadings.onoff2 == 0) {
       Send.onoff2 = 0;
